@@ -44,6 +44,8 @@ body {
   perspective: 1000px;
 }
 .g-container {
+  max-width: 640px;
+  margin: auto;
   overflow-x: hidden;
   overflow-y: visible;
   font-size: 14px;
@@ -61,25 +63,29 @@ body {
   display: block;
 }
 .m-slider .item1 img {
-  width: 1920px;
-  height: 1080px;
+  width: 960px;
+  height: 637px;
 }
 .m-slider .item2 img {
   width: 960px;
-  height: 640px;
+  height: 720px;
 }
 .m-slider .item3 img {
-  width: 450px;
-  height: 450px;
+  width: 960px;
+  height: 640px;
 }
 .m-slider .item4 img {
-  width: 1440px;
-  height: 900px;
+  width: 960px;
+  height: 720px;
+}
+.m-slider .item5 img {
+  width: 960px;
+  height: 640px;
 }
 .m-content {
   border: 1px solid black;
   height: 8rem;
-  background-color: gray;
+  background-color: #9c9c9c;
 }
 .m-content .item {
   height: 100%;
@@ -93,16 +99,19 @@ body {
 <div class="g-container">
   <div class="m-slider">
     <div class="item item1 active">
-      <img class="f-transition" src="1.jpg"/>
+      <img src="1.jpg"/>
     </div>
     <div class="item item2 next">
-      <img class="f-transition" src="2.jpg"/>  
+      <img src="2.jpg"/>  
     </div>
     <div class="item item3">
-      <img class="f-transition" src="3.jpg"/>
+      <img src="3.jpg"/>
     </div>
     <div class="item item4">
-      <img class="f-transition" src="4.jpg"/>
+      <img src="4.jpg"/>
+    </div>
+    <div class="item item5">
+      <img src="5.jpg"/>
     </div>
   </div>
   <div class="m-content">
@@ -139,7 +148,10 @@ body {
   }
 }());
 var Slider = (function() {
-  var SCREEN_WIDTH = $(document).width();
+  var slider = null;
+  var content = null;
+  var container = null;
+  var SCREEN_WIDTH = 0;
   var basicHeight = 0;
   var nowSlideIndex = 0;
   var totalPage = 0;
@@ -148,9 +160,11 @@ var Slider = (function() {
   var sliderNowHeight = 0;
   window.sliderStatus = [];
 
-  var init = function(_slider, _content) {
+  var init = function(_container, _slider, _content) {
+    container = $(_container);
     slider = $(_slider);
     content = $(_content);
+    SCREEN_WIDTH = container.width();
     basicHeight = slider.height();
     items = slider.find('.item');
     initImage();
@@ -224,7 +238,7 @@ var Slider = (function() {
     });
     slider.css({
       height: `${nowHeight + stepHeight}px`,
-      transform: `translateX(${nowPageState.left - stepTransformX}px)`
+      transform: `translate3d(${nowPageState.left - stepTransformX}px, 0, 0)`
     });
     sliderNowTransformX = nowPageState.left - stepTransformX;
     sliderNowHeight = nowHeight + stepHeight;
@@ -342,7 +356,7 @@ var Slider = (function() {
 })()
 
 
-Slider.init('.m-slider', '.m-content');
+Slider.init('.g-container', '.m-slider', '.m-content');
 
 </script>
 </html>
