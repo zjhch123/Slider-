@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <meta name="keywords" content="">
+    <meta name="description" content="">
+    <meta charset="utf-8">
+    <meta content="yes" name="apple-mobile-web-app-capable">
+    <meta content="yes" name="apple-touch-fullscreen">
+    <meta content="telephone=no,email=no" name="format-detection">
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+    <script type="text/javascript" compress="no-compress">
+        !function(){
+            function a(){
+                if(parseInt(document.documentElement.clientWidth) > 720) {
+                    document.documentElement.style.fontSize=720/640*10/16*1000+"%";
+                } else {
+                    document.documentElement.style.fontSize=document.documentElement.clientWidth/640*10/16*1000+"%";
+                }
+            }
+            var b=null;
+            window.addEventListener("resize",function(){
+                clearTimeout(b);
+                b=setTimeout(a,10);
+            },!1);
+            a();
+        }(window);
+    </script>
+<style>
+body {
+  margin: 0;
+}
+.f-transition {
+  /*transition: all .5s;*/
+}
+.f-cb::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+* {
+  box-sizing: border-box;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+.g-container {
+  overflow-x: hidden;
+  overflow-y: visible;
+  font-size: 14px;
+}
+.m-slider {
+  height: 3.6rem;
+  font-size: 0;
+  white-space: nowrap;
+}
+.m-slider .item {
+  height: 100%;
+  display: inline-block;
+}
+.m-slider .item img {
+  display: block;
+}
+.m-slider .item1 img {
+  width: 1920px;
+  height: 1080px;
+}
+.m-slider .item2 img {
+  width: 960px;
+  height: 640px;
+}
+.m-slider .item3 img {
+  width: 450px;
+  height: 450px;
+}
+.m-slider .item4 img {
+  width: 1440px;
+  height: 900px;
+}
+.m-content {
+  border: 1px solid black;
+  height: 8rem;
+  background-color: gray;
+}
+.m-content .item {
+  height: 100%;
+}
+.m-content .item img {
+  height: 100%;
+}
+</style>
+</head>
+<body>
+<div class="g-container">
+  <div class="m-slider">
+    <div class="item item1 active">
+      <img class="f-transition" src="1.jpg"/>
+    </div>
+    <div class="item item2 next">
+      <img class="f-transition" src="2.jpg"/>  
+    </div>
+    <div class="item item3">
+      <img class="f-transition" src="3.jpg"/>
+    </div>
+    <div class="item item4">
+      <img class="f-transition" src="4.jpg"/>
+    </div>
+  </div>
+  <div class="m-content">
+
+  </div>
+</div>
+<script type="text/javascript" src="zepto.js"></script>
+</body>
+<script>
+(function() {
+  var lastTime = 0;
+  var vendors = ['webkit', 'moz'];
+  for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+    window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+    window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] ||    // Webkit中此取消方法的名字变了
+                                  window[vendors[x] + 'CancelRequestAnimationFrame'];
+  }
+
+  if (!window.requestAnimationFrame) {
+    window.requestAnimationFrame = function(callback, element) {
+        var currTime = new Date().getTime();
+        var timeToCall = Math.max(0, 16.7 - (currTime - lastTime));
+        var id = window.setTimeout(function() {
+            callback(currTime + timeToCall);
+        }, timeToCall);
+        lastTime = currTime + timeToCall;
+        return id;
+    };
+  }
+  if (!window.cancelAnimationFrame) {
+    window.cancelAnimationFrame = function(id) {
+        clearTimeout(id);
+    };
+  }
+}());
+var Slider = (function() {
+  var SCREEN_WIDTH = $(document).width();
+  var basicHeight = 0;
+  var nowSlideIndex = 0;
+  var totalPage = 0;
+  var items = null;
+  var sliderNowTransformX = 0;
+  var sliderNowHeight = 0;
+  window.sliderStatus = [];
+
+  var init = function(_slider, _content) {
+    slider = $(_slider);
+    content = $(_content);
+    basicHeight = slider.height();
+    items = slider.find('.item');
+    initImage();
+    slider.css({
+      height: sliderStatus[0].scaleHeight + 'px'
+    });
+    items.find('img').css({
+      height: sliderStatus[0].scaleHeight + 'px'
+    });
+    totalPage = slider.find('.item').length - 1;
+    // console.log(sliderStatus);
+    listen();
+  };
+
+  var initImage = function() {
+    $.each(items, function(k, v) {
+      var $img = $(v).find('img');
+      var width = $img.width();
+      var height = $img.height();
+      var _width = width * basicHeight / height;
+      $img.css({
+        width: 'auto',
+        height: '100%'
+      });
+      var imgStatus = {
+        width: _width,
+        height: basicHeight,
+        scaleWidth: SCREEN_WIDTH,
+        scaleHeight: SCREEN_WIDTH / _width * basicHeight
+      }
+      var scale = imgStatus.scaleWidth / imgStatus.width;
+      var sum = 0;
+      for(var j = 0; j < k; j ++) {
+        sum += scale * sliderStatus[j].width;
+      }
+      imgStatus.left = -sum;
+      sliderStatus.push(imgStatus);
+    });
+  };
+
+  var transition = function(startX, endX) {
+    var split = endX - startX;
+    var nowPageState = sliderStatus[nowSlideIndex];
+    var nextPageState = null;
+    var nowHeight = null;
+    var nextHeight = null;
+    var stepHeight = 0;
+    var transformPercent = Math.abs(split / SCREEN_WIDTH);
+    var stepTransformX = 0;
+    var lf1 = 0;
+    var lf2 = 0;
+    if(split > 0 && nowSlideIndex > 0) {
+      // 上一页
+      nextPageState = sliderStatus[nowSlideIndex - 1];
+      lf2 = nowPageState.left;
+      lf1 = nextPageState.left;
+    } else if(split < 0 && nowSlideIndex < totalPage) {
+      // 下一页
+      nextPageState = sliderStatus[nowSlideIndex + 1];
+      lf2 = nextPageState.left;
+      lf1 = nowPageState.left;
+    } else {
+      return;
+    }
+    nowHeight = nowPageState.scaleHeight;
+    nextHeight = nextPageState.scaleHeight;
+    stepHeight = transformPercent * (nextHeight - nowHeight);
+    stepTransformX = split * (lf2 - lf1) / SCREEN_WIDTH;
+    items.find('img').css({
+      height: `${nowHeight + stepHeight}px`
+    });
+    slider.css({
+      height: `${nowHeight + stepHeight}px`,
+      transform: `translateX(${nowPageState.left - stepTransformX}px)`
+    });
+    sliderNowTransformX = nowPageState.left - stepTransformX;
+    sliderNowHeight = nowHeight + stepHeight;
+  }
+
+  var listen = function() {
+    var startX = 0;
+    var endX = 0;
+    var startTime = 0;
+    var endTime = 0;
+
+    slider.on('touchstart', function(event) {
+      endX = startX = event.touches[0].clientX;
+      startTime = new Date().getTime();
+    });
+
+    slider.on('touchmove', function(event) {
+      event.preventDefault();
+      endX = event.touches[0].clientX;
+      endX = endX > SCREEN_WIDTH ? SCREEN_WIDTH : endX;
+      transition(startX, endX);
+    });
+
+    slider.on('touchend', function() {
+      endTime = new Date().getTime();
+      changePage(startX, endX, startTime, endTime);
+      startX = 0;
+      endX = 0;
+      startTime = 0;
+      endTime = 0;
+    });
+  }
+
+  var setPage = function(pageNumber) {
+    var $nowPage = slider.find('.item').eq(nowSlideIndex);
+    $nowPage.removeClass('active');
+    $nowPage.next().removeClass('next');
+    $nowPage.prev().removeClass('prev');
+    var $targetPage = slider.find('.item').eq(pageNumber);
+    $targetPage.addClass('active');
+    $targetPage.prev().addClass('prev');
+    $targetPage.next().addClass('next');
+  };
+
+  var nextPage = function() {
+    if(nowSlideIndex < totalPage) {
+      setPage(nowSlideIndex + 1);
+      nowSlideIndex += 1;
+    }
+  };
+
+  var prevPage = function() {
+    if(nowSlideIndex > 0) {
+      setPage(nowSlideIndex - 1);
+      nowSlideIndex -= 1;
+    }
+  };
+
+  var changePage = function(startX, endX, startTime, endTime) {
+    var transformX = 0;
+    var scale = 1;
+    var prevSliderIndex = nowSlideIndex;
+    if(endX - startX > SCREEN_WIDTH / 2 || endX - startX > SCREEN_WIDTH / 8 && endTime - startTime < 1000) {
+      // 切换上一页
+      if(nowSlideIndex === 0) {
+        return;
+      }
+      prevPage();
+    } else if(startX - endX > SCREEN_WIDTH / 2 || startX - endX > SCREEN_WIDTH / 8 && endTime - startTime < 1000) {
+      // 切换下一页
+      if(nowSlideIndex === totalPage) {
+        return;
+      }
+      nextPage(); 
+    }
+
+    var rate = Math.abs((endX - startX) / (endTime - startTime)) * 10;
+    rate = rate < 1 ? 20 : rate;
+    transitionToNextPage(rate);
+  };
+ 
+  var transitionToNextPage = function(rate) {
+    var targetTransform = sliderStatus[nowSlideIndex].left;
+    var nowTransform = sliderNowTransformX;
+    var targetHeight = sliderStatus[nowSlideIndex].scaleHeight;
+    var nowHeight = sliderNowHeight;
+    var step = (targetTransform - nowTransform) / rate;
+    var step2 = (targetHeight - nowHeight) / rate;
+    var top = function () {
+      nowTransform = nowTransform + step;
+      nowHeight = nowHeight + step2;
+      if (Math.abs(targetTransform - nowTransform) < Math.abs(step) || Math.abs(targetHeight - nowHeight) < Math.abs(step2)) {
+        slider.css({
+          height: `${targetHeight}px`,
+          transform: `translate3d(${targetTransform}px, 0, 0)`
+        });
+        items.find('img').css({
+          height: `${targetHeight}px`
+        });
+        return;
+      }
+      items.find('img').css({
+        height: `${nowHeight}px`
+      });
+      slider.css({
+        height: `${nowHeight}px`,
+        transform: `translate3d(${nowTransform}px, 0, 0)`
+      })
+      requestAnimationFrame(top);    
+    };
+    top();
+  }
+
+  return {
+    init: init
+  };
+})()
+
+
+Slider.init('.m-slider', '.m-content');
+
+</script>
+</html>
+
+
+
+
+
+
+
+
+
