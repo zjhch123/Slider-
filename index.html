@@ -32,9 +32,6 @@
 body {
   margin: 0;
 }
-.f-transition {
-  /*transition: all .5s;*/
-}
 .f-cb::after {
   content: '';
   display: table;
@@ -290,13 +287,13 @@ var Slider = (function() {
     var transformX = 0;
     var scale = 1;
     var prevSliderIndex = nowSlideIndex;
-    if(endX - startX > SCREEN_WIDTH / 2 || endX - startX > SCREEN_WIDTH / 8 && endTime - startTime < 1000) {
+    if(endX - startX > SCREEN_WIDTH / 2 || endX - startX > SCREEN_WIDTH / 4 && endTime - startTime < 300) {
       // 切换上一页
       if(nowSlideIndex === 0) {
         return;
       }
       prevPage();
-    } else if(startX - endX > SCREEN_WIDTH / 2 || startX - endX > SCREEN_WIDTH / 8 && endTime - startTime < 1000) {
+    } else if(startX - endX > SCREEN_WIDTH / 2 || startX - endX > SCREEN_WIDTH / 4 && endTime - startTime < 300) {
       // 切换下一页
       if(nowSlideIndex === totalPage) {
         return;
@@ -304,9 +301,7 @@ var Slider = (function() {
       nextPage(); 
     }
 
-    var rate = Math.abs((endX - startX) / (endTime - startTime)) * 10;
-    rate = rate < 1 ? 20 : rate;
-    transitionToNextPage(rate);
+    transitionToNextPage(10);
   };
  
   var transitionToNextPage = function(rate) {
