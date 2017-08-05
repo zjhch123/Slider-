@@ -4,7 +4,6 @@
 目前还未封装完成~
 
 
-
 制作思路与总结
 
 1) 卡的原因与解决办法
@@ -15,6 +14,6 @@
 2) 实现方式
   1. 初始化加载所有图片，计算所有图片的位置
   2. 不用canvas，用dom+img
-  3. touchstart时进行prev/next元素的拼凑
+  3. touchend时进行prev/next元素的拼凑
   4. 操作的时候始终只处理3个dom (prev/now/next)
 
