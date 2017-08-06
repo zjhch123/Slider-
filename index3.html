@@ -55,11 +55,15 @@ body {
   font-size: 0;
   white-space: nowrap;
 }
-.m-slider .item, .m-slider .m-slider-item {
+.m-slider .item {
   height: 100%;
   display: inline-block;
   vertical-align: top;
   font-size: 0;
+}
+.m-slider .m-slider-item {
+  display: inline-block;
+  vertical-align: top;
 }
 .m-slider .m-slider-item .item-img {
   height: 100%;
@@ -154,6 +158,9 @@ var Slider = (function() {
   var $slider = null;
   var $content = null;
   
+  var sliderNowTransformX = 0;
+  var sliderNowHeight = 0;
+
   window.basicHeight = 0;
   window.items = [];
   window.imageStatus = [];
@@ -167,7 +174,7 @@ var Slider = (function() {
     $content = $(_content);
     basicHeight = $slider.height();
     items = $slider.find('.item');
-    totalIndex = items.length;
+    totalIndex = items.length - 1;
     initImage(setImage);
     listen();
   }
@@ -191,7 +198,7 @@ var Slider = (function() {
         items.eq(i).hide();
       };
     };
-    map(imgs, function(index, img, next) {
+    Util.map(imgs, function(index, img, next) {
       if (img.complete) {
         helperFunc(index, img)();
         next();
@@ -224,14 +231,14 @@ var Slider = (function() {
       $slider.append(imageDOM[nowIndex - 1]); 
     }
     $slider.append(imageDOM[nowIndex]);
-    if (nowIndex < totalIndex - 1) {
+    if (nowIndex < totalIndex) {
       $slider.append(imageDOM[nowIndex + 1]);  
     }
     $slider.css({
-      transform: `translateX(${imageStatus[nowIndex].left}px)`,
+      transform: `translate3d(${imageStatus[nowIndex].left}px, 0, 0)`,
       height: imageStatus[nowIndex].scaleHeight + 'px'
     });
-    $('.m-slider-item').css({
+    $('.m-slider-item').find('img').css({
       height: imageStatus[nowIndex].scaleHeight + 'px'
     })
   }
@@ -292,21 +299,65 @@ var Slider = (function() {
     nextHeight = nextPageState.scaleHeight;
     stepHeight = transformPercent * (nextHeight - nowHeight);
     stepTransformX = split * (lf2 - lf1) / SCREEN_WIDTH;
-    $('.m-slider-item').css({
-      height: `${nowHeight + stepHeight}px`
+    sliderNowTransformX = nowPageState.left - stepTransformX;
+    sliderNowHeight = nowHeight + stepHeight;
+    $('.m-slider-item').find('img').css({
+      height: `${sliderNowHeight}px`
     });
     $slider.css({
       height: `${nowHeight + stepHeight}px`,
-      transform: `translate3d(${nowPageState.left - stepTransformX}px, 0, 0)`
+      transform: `translate3d(${sliderNowTransformX}px, 0, 0)`
     });
-    sliderNowTransformX = nowPageState.left - stepTransformX;
-    sliderNowHeight = nowHeight + stepHeight;
+  }
+
+  function transitionTo(targetTransformX, targetHeight, rate) {
+    var nowTransformX = sliderNowTransformX;
+    var nowHeight = sliderNowHeight;
+    var step = (targetTransformX - nowTransformX) / rate;
+    var step2 = (targetHeight - nowHeight) / rate;
+    var top = function () {
+      nowTransformX = nowTransformX + step;
+      nowHeight = nowHeight + step2;
+      if (Math.abs(targetTransformX - nowTransformX) < Math.abs(step) || Math.abs(targetHeight - nowHeight) < Math.abs(step2)) {
+        setImage();
+        return;
+      }
+      $('.m-slider-item').find('img').css({
+        height: `${nowHeight}px`
+      });
+      $slider.css({
+        height: `${nowHeight}px`,
+        transform: `translate3d(${nowTransformX}px, 0, 0)`
+      })
+      requestAnimationFrame(top);    
+    };
+    top();
+  }
+
+  function transitionToPage(oldPage, nowPage, rate) {
+    rate = rate || 10;
+
+    var targetTransformX = 0;
+    var targetHeight = 0;
+
+    if(oldPage < nowPage) {
+      targetTransformX = imageStatus[oldPage].left2;
+      targetHeight = imageStatus[oldPage + 1].scaleHeight;
+    } else if(oldPage == nowPage) {
+      targetTransformX = imageStatus[oldPage].left;
+      targetHeight = imageStatus[oldPage].scaleHeight;
+    } else {
+      targetTransformX = 0;
+      targetHeight = imageStatus[oldPage - 1].scaleHeight;
+    }
+    transitionTo(targetTransformX, targetHeight, rate);
   }
 
   function changePage(startX, endX, startTime, endTime) {
     var transformX = 0;
     var scale = 1;
     var prevSliderIndex = nowIndex;
+    var oldPage = nowIndex;
     if(endX - startX > SCREEN_WIDTH / 2 || endX - startX > SCREEN_WIDTH / 4 && endTime - startTime < 300) {
       // 切换上一页
       if(nowIndex === 0) {
@@ -320,11 +371,12 @@ var Slider = (function() {
       }
       nowIndex += 1;
     }
-    setImage();
+    transitionToPage(oldPage, nowIndex);
   };
 
 
-  function map(arr, cb, finish) {
+  var Util = {
+    map: function(arr, cb, finish) {
     var cbs = [],
       next = function() {
         !cbs.length && finish && finish()
@@ -343,6 +395,7 @@ var Slider = (function() {
     }
 
     cbs.shift()()
+    }
   }
 
   return {
